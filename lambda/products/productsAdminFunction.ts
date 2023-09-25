@@ -1,11 +1,14 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from "aws-lambda";
-// import { Product, ProductRepository } from "/opt/nodejs/productsLayer";
+import { Product, ProductRepository } from "/opt/nodejs/productsLayer";
 import { DynamoDB } from "aws-sdk"
+import * as AWSXRay from 'aws-xray-sdk'
+
+AWSXRay.captureAWS(require('aws-sdk'))
 
 const productsDdb = process.env.PRODUCTS_DDB!
 const ddbClient = new DynamoDB.DocumentClient()
 
-// const productRepository = new ProductRepository(ddbClient, productsDdb)
+const productRepository = new ProductRepository(ddbClient, productsDdb)
 
 export async function handler(event: APIGatewayProxyEvent, 
    context: Context): Promise<APIGatewayProxyResult> {
@@ -17,26 +20,24 @@ export async function handler(event: APIGatewayProxyEvent,
 
    if (event.resource === "/products") {
       console.log("POST /products")
-      // const product = JSON.parse(event.body!) as Product
-      // const productCreated = await productRepository.create(product)
+      const product = JSON.parse(event.body!) as Product
+      const productCreated = await productRepository.create(product)
 
       return {
          statusCode: 201,
-         body: "Post / Products"
-         // body: JSON.stringify(productCreated)
+         body: JSON.stringify(productCreated)
       }
    } else if (event.resource === "/products/{id}") {
       const productId = event.pathParameters!.id as string
       if (event.httpMethod === "PUT") {
          console.log(`PUT /products/${productId}`)
-         // const product = JSON.parse(event.body!) as Product
+         const product = JSON.parse(event.body!) as Product
          try {
-            // const productUpdated = await productRepository.updateProduct(productId, product)
+            const productUpdated = await productRepository.updateProduct(productId, product)
 
             return {
                statusCode: 200,
-               body: `Put / Products/${productId}`,
-               // body: JSON.stringify(productUpdated)
+               body: JSON.stringify(productUpdated)
             }      
          } catch (ConditionalCheckFailedException) {
             return {
@@ -47,11 +48,10 @@ export async function handler(event: APIGatewayProxyEvent,
       } else if (event.httpMethod === "DELETE") {
          console.log(`DELETE /products/${productId}`)
          try {
-            // const product = await productRepository.deleteProduct(productId)
+            const product = await productRepository.deleteProduct(productId)
             return {
                statusCode: 200,
-               body: `DELETE /products/${productId}`
-               // body: JSON.stringify(product)
+               body: JSON.stringify(product)
             }
          } catch (error) {
             console.error((<Error>error).message)
